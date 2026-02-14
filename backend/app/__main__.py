@@ -29,8 +29,8 @@ setup_logging()
 app = FastAPI(
     responses={429: {"error": "Too Many Requests - Rate limit exceeded"}},
     debug=not settings.IS_PROD,
-    title="Rev Coaching API",
-    description="API for Rev Coaching Program",
+    title="Fullstack Template Lite API",
+    description="API for Fullstack Template Lite",
     version="1.0.0",
     openapi_url=None if settings.IS_PROD else "/openapi.json",
     docs_url=None if settings.IS_PROD else "/docs",

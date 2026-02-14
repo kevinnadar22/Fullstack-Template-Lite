@@ -11,12 +11,11 @@ __author__ = "Maria Kevin"
 __version__ = "0.1.0"
 
 
-from sqladmin import ModelView
 from sqladmin.authentication import AuthenticationBackend
 from starlette.requests import Request
 
 from app.core import config
-from app.domain import models
+
 from app.utils import auth_utils
 
 
@@ -32,9 +31,7 @@ class AdminAuth(AuthenticationBackend):
             return False
 
         token_data = {"sub": username}
-        token = auth_utils.create_access_token(
-            token_data, expires_delta_minutes=60 * 60
-        )  # 1 hour validity
+        token = auth_utils.create_access_token(token_data)
         request.session.update({"token": token})
         return True
 
@@ -57,27 +54,5 @@ class AdminAuth(AuthenticationBackend):
         return True
 
 
-class UserAdmin(ModelView, model=models.Users):
-    column_list = [models.Users.id, models.Users.email, models.Users.verified]
-    column_searchable_list = [models.Users.email]
-    column_sortable_list = [models.Users.id, models.Users.verified]
-    icon = "fa-solid fa-user"
-
-
-class BlacklistTokenAdmin(ModelView, model=models.BlackListTokens):
-    column_list = [
-        models.BlackListTokens.id,
-        models.BlackListTokens.jti,
-        models.BlackListTokens.token_type,
-        models.BlackListTokens.blacklisted_on,
-    ]
-    column_searchable_list = [models.BlackListTokens.jti]
-    column_sortable_list = [
-        models.BlackListTokens.id,
-        models.BlackListTokens.blacklisted_on,
-    ]
-    icon = "fa-solid fa-ban"
-
-
-admin_views = [UserAdmin, BlacklistTokenAdmin]
+admin_views = []
 admin_authentication = AdminAuth(secret_key=config.settings.SECRET_KEY)

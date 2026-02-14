@@ -1,29 +1,9 @@
-from .auth import (
-    CheckEmailStatusResponse,
-    CommentResponse,
-    RequestLoginTokenResponse,
-    RequestSignupTokenResponse,
-    SignupUserResponse,
-    TokenResponse,
-    VerifyCodeTokenResponse,
-    VerifyLoginResponse,
-    VerifyResetTokenResponse,
-    VerifySignupResponse,
-)
+# app/domain/schemas/response/__init__.py
+
 from .base import APIResponse, PaginatedResponse
 from .misc import HealthResponse
 
 __all__ = [
-    "CheckEmailStatusResponse",
-    "CommentResponse",
-    "RequestLoginTokenResponse",
-    "RequestSignupTokenResponse",
-    "SignupUserResponse",
-    "TokenResponse",
-    "VerifyCodeTokenResponse",
-    "VerifyLoginResponse",
-    "VerifyResetTokenResponse",
-    "VerifySignupResponse",
     "APIResponse",
     "PaginatedResponse",
     "HealthResponse",

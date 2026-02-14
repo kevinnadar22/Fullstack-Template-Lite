@@ -1,5 +1,1 @@
-from .tokens import (
-    TokenType,
-)
-
-__all__ = ["TokenType"]
+# app/domain/enums/__init__.py
