@@ -1,0 +1,59 @@
+services:
+  web:
+    build: .
+    container_name: web
+    command: >
+      sh -c "uv run uvicorn app.__main__:app --host 0.0.0.0 --port 8000 2>&1 | tee -a /app/log/api.log"
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./log:/app/log
+      - ./app:/app/app
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f uvicorn || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  celery-worker:
+    build: .
+    container_name: celery-worker
+    command: >
+      sh -c "uv run celery -A app.core.celery_app worker --loglevel=info 2>&1 | tee -a /app/log/celery.log"
+    env_file:
+      - .env
+    volumes:
+      - ./log:/app/log
+      - ./app:/app/app
+    restart: unless-stopped
+    depends_on:
+      - web
+    healthcheck:
+      test: ["CMD-SHELL", "uv run celery -A app.core.celery_app inspect ping -d celery@$$HOSTNAME"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  celery-beat:
+    build: .
+    container_name: celery-beat
+    command: >
+      sh -c "uv run celery -A app.core.celery_app beat
+      --schedule=/app/celerybeat/celerybeat-schedule
+      --loglevel=info 2>&1 | tee -a /app/log/beat.log"
+    env_file:
+      - .env
+    volumes:
+      - ./log:/app/log
+      - ./app:/app/app
+      - ./celerybeat:/app/celerybeat
+    restart: unless-stopped
+    depends_on:
+      - web
+      - celery-worker
+
