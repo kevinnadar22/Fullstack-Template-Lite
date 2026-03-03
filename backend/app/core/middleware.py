@@ -11,11 +11,12 @@ __author__ = "Maria Kevin"
 __version__ = "0.1.0"
 
 
-from app.core.config import settings
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+
+from app.core.config import settings
 
 
 def setup_middlewares(app: FastAPI):
@@ -27,8 +28,8 @@ def setup_middlewares(app: FastAPI):
     )
 
     origins = ["http://localhost:5173"]
-    if settings.FRONTEND_URL:
-        origins.append(settings.FRONTEND_URL)
+    if settings.frontend_url:
+        origins.append(settings.frontend_url)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
@@ -39,7 +40,7 @@ def setup_middlewares(app: FastAPI):
 
     app.add_middleware(
         SessionMiddleware,
-        secret_key=settings.SECRET_KEY,
+        secret_key=settings.secret_key,
         same_site="lax",
-        https_only=settings.IS_PROD,
+        https_only=settings.is_prod,
     )

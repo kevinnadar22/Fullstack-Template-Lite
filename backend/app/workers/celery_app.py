@@ -11,10 +11,10 @@ except ImportError:
 
 celery_app = None
 
-if HAS_CELERY and settings.RABBITMQ_URL:
+if HAS_CELERY and settings.celery.rabbitmq_url:
     celery_app = Celery(
         "tasks",
-        broker=settings.RABBITMQ_URL,
+        broker=settings.celery.rabbitmq_url,
         include=[],
     )
 

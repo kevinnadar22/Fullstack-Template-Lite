@@ -15,7 +15,6 @@ from sqladmin.authentication import AuthenticationBackend
 from starlette.requests import Request
 
 from app.core import config
-
 from app.utils import auth_utils
 
 
@@ -25,8 +24,8 @@ class AdminAuth(AuthenticationBackend):
         username, password = form["username"], form["password"]
 
         if (
-            username != config.settings.ADMIN_USERNAME
-            or password != config.settings.ADMIN_PASSWORD
+            username != config.settings.admin.username
+            or password != config.settings.admin.password
         ):
             return False
 
@@ -48,11 +47,11 @@ class AdminAuth(AuthenticationBackend):
         payload = auth_utils.decode_access_token(token)
         if not payload:
             return False
-        if payload.get("sub") != config.settings.ADMIN_USERNAME:
+        if payload.get("sub") != config.settings.admin.username:
             return False
         # Check the token in depth
         return True
 
 
 admin_views = []
-admin_authentication = AdminAuth(secret_key=config.settings.SECRET_KEY)
+admin_authentication = AdminAuth(secret_key=config.settings.secret_key)

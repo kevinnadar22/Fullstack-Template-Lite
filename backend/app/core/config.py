@@ -9,42 +9,83 @@ Description: Brief description
 import os
 from typing import Literal, Optional
 
-from dotenv import load_dotenv
-from pydantic import ConfigDict
-from pydantic_settings import BaseSettings
+from pydantic import BaseModel, Field
+from pydantic_settings import SettingsConfigDict, YamlConfigSettingsSource
+from pydantic_settings_yaml import YamlBaseSettings
 
-dev_file = ".dev.env"
-prod_file = ".prod.env"
+default_file = "secrets/config.yaml"
+dev_file = "secrets/dev.config.yaml"
+prod_file = "secrets/prod.config.yaml"
 
-load_dotenv(dev_file if os.path.exists(dev_file) else prod_file)
+# take dev is it exists, else prod exists then prod, else the default
+if os.path.exists(dev_file):
+    selected_config = dev_file
+elif os.path.exists(prod_file):
+    selected_config = prod_file
+else:
+    selected_config = default_file
 
 
-class Settings(BaseSettings):
+class Database(BaseModel):
+    url: str = Field(default="sqlite:///./instance/test.db")
+
+
+class Admin(BaseModel):
+    username: str = Field(default="admin")
+    password: str = Field(default="123")
+
+
+class Celery(BaseModel):
+    rabbitmq_url: Optional[str] = Field(default=None)
+
+
+class Settings(YamlBaseSettings):
     """Application configuration settings."""
 
-    DATABASE_URL: str = "sqlite:///./instance/test.db"
-    ENV: Literal["dev", "prod"] = "dev"
-    FRONTEND_URL: str
+    database: Database = Field(default_factory=Database)
+    admin: Admin = Field(default_factory=Admin)
+    celery: Celery = Field(default_factory=Celery)
 
-    LOGFIRE_TOKEN: Optional[str] = None
-
-    # Celery
-    RABBITMQ_URL: Optional[str] = None  # If not None, celery enabled
-
-    # Admin
-    ADMIN_USERNAME: str = "admin"
-    ADMIN_PASSWORD: str = "123"
-
-    # timezone
-    TZ: str = "UTC"
-
-    SECRET_KEY: str = "your-secret"
+    env: Literal["dev", "prod"] = "dev"
+    log_level: str = ""
+    frontend_url: str = "http://localhost:5173"
+    logfire_token: Optional[str] = None
+    tz: str = "UTC"
+    secret_key: str = "your-secret"
 
     @property
-    def IS_PROD(self) -> bool:
-        return self.ENV == "prod"
+    def is_prod(self) -> bool:
+        return self.env == "prod"
 
-    model_config = ConfigDict(env_file=(dev_file, prod_file), extra="ignore")  # type: ignore
+    @property
+    def resolved_log_level(self) -> str:
+        """OS environ > explicit log_level > env-based default."""
+        if self.log_level:
+            return self.log_level.upper()
+        return "INFO" if self.is_prod else "DEBUG"
+
+    model_config = SettingsConfigDict(
+        yaml_file=selected_config,
+        extra="ignore",
+        secrets_dir="secrets",
+    )
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls,
+        init_settings,
+        env_settings,
+        dotenv_settings,
+        file_secret_settings,
+    ):
+        return (
+            init_settings,
+            env_settings,
+            dotenv_settings,
+            YamlConfigSettingsSource(settings_cls),
+            file_secret_settings,
+        )
 
 
-settings = Settings()  # type: ignore
+settings = Settings()

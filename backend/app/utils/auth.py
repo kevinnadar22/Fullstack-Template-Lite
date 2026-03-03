@@ -11,7 +11,6 @@ from typing import Dict, Literal, Union
 
 from jose import jwt
 
-
 from app.core.config import settings
 
 
@@ -64,7 +63,7 @@ class AuthUtils:
         self, token_type: Literal["access", "refresh"] = "access"
     ) -> str:
         """Get the secret key for a specific token type."""
-        return settings.SECRET_KEY
+        return settings.secret_key
 
 
 # Singleton instance

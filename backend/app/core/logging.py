@@ -11,10 +11,47 @@ __author__ = "Maria Kevin"
 __version__ = "0.1.0"
 
 
+import json
 import logging
 import sys
+import traceback
+from typing import TYPE_CHECKING
 
 from loguru import logger
+
+if TYPE_CHECKING:
+    from loguru import Record
+
+
+def _json_formatter(record: "Record") -> str:
+    """Emit only the essential fields as a compact JSON line."""
+    payload: dict = {
+        "time": record["time"].isoformat(),
+        "level": record["level"].name,
+        "message": record["message"],
+        "module": record["module"],
+        "function": record["function"],
+        "line": record["line"],
+    }
+    # Add any extra context fields
+    payload.update(record["extra"])
+
+    exc = record["exception"]
+    if exc is not None:
+        payload["exception"] = "".join(traceback.format_exception(*exc))
+
+    return json.dumps(payload).replace("{", "{{").replace("}", "}}") + "\n"
+
+
+def _dev_formatter(record: "Record") -> str:
+    """Formatter for dev logs that only shows {extra} if it's not empty."""
+    extra = " <blue>{extra}</blue>" if record["extra"] else ""
+    return (
+        "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
+        "<level>{level: <8}</level> | "
+        "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - "
+        "<level>{message}</level>" + extra + "\n"
+    )
 
 
 class InterceptHandler(logging.Handler):
@@ -35,10 +72,14 @@ class InterceptHandler(logging.Handler):
         )
 
 
-def setup_logging():
-    """Set up logging configuration."""
+def setup_logging(log_level: str = "DEBUG", is_prod: bool = False) -> None:
+    """Set up logging configuration.
+
+    - Dev:  human-readable colored output, DEBUG level, backtrace + diagnose enabled.
+    - Prod: structured JSON logs, INFO (or configured) level, no diagnose (avoids leaking locals).
+    """
     logging.root.handlers = [InterceptHandler()]
-    logging.root.setLevel(logging.INFO)
+    logging.root.setLevel(log_level)
 
     for name in (
         "uvicorn",
@@ -46,14 +87,58 @@ def setup_logging():
         "uvicorn.error",
         "fastapi",
         "starlette",
+        "celery",
+        "amqp",
+        "kombu",
+        "pika",
+        "sqlalchemy",
     ):
         logging.getLogger(name).handlers = []
         logging.getLogger(name).propagate = True
 
     logger.remove()
 
-    logger.add("log/app.log", rotation="10 MB", retention="10 days", level="INFO")
-    logger.add("log/error.log", rotation="10 MB", retention="30 days", level="ERROR")
-    logger.add(sys.stdout, level="INFO", backtrace=True, diagnose=True)
+    if is_prod:
+        logger.add(
+            "log/app.log",
+            rotation="10 MB",
+            retention="10 days",
+            level=log_level,
+            format=_json_formatter,
+        )
+        logger.add(
+            "log/error.log",
+            rotation="10 MB",
+            retention="30 days",
+            level="ERROR",
+            format=_json_formatter,
+        )
+        logger.add(
+            sys.stdout,
+            level=log_level,
+            format=_json_formatter,
+        )
+    else:
+        logger.add(
+            "log/app.log",
+            rotation="10 MB",
+            retention="10 days",
+            level=log_level,
+            format=_dev_formatter,
+        )
+        logger.add(
+            "log/error.log",
+            rotation="10 MB",
+            retention="30 days",
+            level="ERROR",
+            format=_dev_formatter,
+        )
+        logger.add(
+            sys.stdout,
+            level=log_level,
+            format=_dev_formatter,
+            backtrace=True,
+            diagnose=True,
+        )
 
-    logger.info("Logging is set up.")
+    logger.info("Logging is set up. level={} json={}", log_level, is_prod)
