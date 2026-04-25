@@ -54,7 +54,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    responses={429: {"error": "Too Many Requests - Rate limit exceeded"}},
+    responses={429: {"description": "Too Many Requests - Rate limit exceeded"}},
     debug=not settings.is_prod,
     title="Fullstack Template Lite API",
     description="API for Fullstack Template Lite",
