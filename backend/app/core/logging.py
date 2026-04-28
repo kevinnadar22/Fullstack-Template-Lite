@@ -40,17 +40,18 @@ def _json_formatter(record: "Record") -> str:
     if exc is not None:
         payload["exception"] = "".join(traceback.format_exception(*exc))
 
-    return json.dumps(payload).replace("{", "{{").replace("}", "}}") + "\n"
+    return json.dumps(payload) + "\n"
 
 
 def _dev_formatter(record: "Record") -> str:
     """Formatter for dev logs that only shows {extra} if it's not empty."""
     extra = " <blue>{extra}</blue>" if record["extra"] else ""
+    exception = "\n<level>{exception}</level>" if record["exception"] else ""
     return (
         "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
         "<level>{level: <8}</level> | "
         "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - "
-        "<level>{message}</level>" + extra + "\n"
+        "<level>{message}</level>" + extra + exception + "\n"
     )
 
 
@@ -140,5 +141,16 @@ def setup_logging(log_level: str = "DEBUG", is_prod: bool = False) -> None:
             backtrace=True,
             diagnose=True,
         )
+
+    # Capture unhandled exceptions
+    def handle_exception(exc_type, exc_value, exc_traceback):
+        if issubclass(exc_type, KeyboardInterrupt):
+            sys.__excepthook__(exc_type, exc_value, exc_traceback)
+            return
+        logger.opt(exception=(exc_type, exc_value, exc_traceback)).critical(
+            "Unhandled exception"
+        )
+
+    sys.excepthook = handle_exception
 
     logger.info("Logging is set up. level={} json={}", log_level, is_prod)
