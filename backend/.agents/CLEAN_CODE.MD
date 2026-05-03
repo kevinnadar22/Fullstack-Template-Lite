@@ -1,109 +1,46 @@
-## 1. Philosophy
+Have third party clients under app/integrations
 
-* Prioritize readability over cleverness
-* Code is for humans first
-* Prefer simple, explicit solutions
+use utils for utility functions
 
-## 2. Naming
+use services for business logic
 
-* Use clear, intention-revealing names
-* No vague names (`x`, `tmp`, `data`)
-* No unnecessary abbreviations
-* Boolean names must read naturally:
+and repository for db calls,
 
-  * `is_valid`, `has_access`
+never call db from handler or utils, call only from service through repository
 
-## 3. Functions
+have environ variables under app/core/config.py
 
-* Do one thing only
-* Keep ≤ 20 lines
-* Prefer ≤ 3 parameters
-* Use descriptive names
+raise exceptions from app/core/exceptions.py
 
-## 4. Single Responsibility
+use logger.loguru for logging
 
-* Each function/class = one responsibility
-* Do not mix:
+have pydantic schemas for complex data structures, for inpur or request schemas, have it under app/domain/schemas/request
 
-  * Business logic
-  * DB logic
-  * Formatting/UI
+example
 
-## 5. Nesting
+@router.get("", response_model=schemas.APIResponse[schemas.HealthResponse])
+async def health_check() -> schemas.APIResponse[schemas.HealthResponse]:
+    """
+    Health check endpoint for Docker and monitoring systems.
 
-* Max depth: 2–3 levels
-* Use early returns / guard clauses
+    Returns:
+        APIResponse[HealthResponse]: Status of the application
+    """
+    return schemas.APIResponse(
+        data=schemas.HealthResponse(status="healthy", service="api", version="1.0.0")
+    )
 
-## 6. Comments
 
-* Avoid obvious comments
-* Only explain:
+always uyse repsonse_model=
+and always the response has to go through APIResponse
 
-  * why, not what
-  * complex decisions
+the import should be like
 
-## 7. Constants
+from app.x import y
 
-* No magic numbers
-* Use named constants
+use it like y.z, dont do like: from app.w.x.y import z
 
-## 8. Error Handling
 
-* Use exceptions, not error codes
-* Fail fast with clear messages
+run uv run init.py to automatically generate __init__.py file
 
-## 9. DRY
-
-* Avoid duplication
-* Extract reusable logic
-* Duplicate only if abstraction hurts readability
-
-## 10. Formatting
-
-* Consistent indentation
-* Logical spacing
-* High-level → low-level structure
-
-## 11. Classes
-
-* Small and focused
-* Follow single responsibility
-* Avoid large “God classes”
-
-## 12. Testing
-
-* Code must be testable
-* Prefer pure functions
-* Tests: readable, independent, fast
-
-## 13. Avoid Over-Engineering
-
-* Don’t build for hypothetical future
-* Start simple
-
-## 14. Code Smells (Do NOT Generate)
-
-* Long functions (>30 lines)
-* Deep nesting (>3)
-* Poor naming
-* Duplicate logic
-* Excess comments
-* Dead code
-* Too many params (>4)
-
-## 15. Output Checklist
-
-* Clear names
-* Small functions
-* No deep nesting
-* No magic numbers
-* No duplication
-* Clean error handling
-* Readable without explanation
-
-## Priority Order
-
-1. Readability
-2. Simplicity
-3. Maintainability
-4. Performance
+have small doc under every func
