@@ -1,49 +1,66 @@
+name: template-lite
 services:
-  web:
+  web-blue:
     build: .
-    container_name: web
+    image: template-lite-web:latest
     command: >
-      sh -c "uv run uvicorn app.__main__:app --host 0.0.0.0 --port 8000 2>&1 | tee -a /app/log/api.log"
+      sh -c "uv run uvicorn app.__main__:app --host 0.0.0.0 --port 8000 --workers 2 2>&1 | tee -a /app/log/api.log"
     ports:
-      - "8000:8000"
+      - "8001:8000"
     env_file:
       - .env
     volumes:
       - ./log:/app/log
       - ./app:/app/app
-    restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pgrep -f uvicorn || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 5s
+      retries: 10
+      start_period: 5s
+      timeout: 2s
+    networks:
+      - template-backend
+
+  web-green:
+    build: .
+    image: template-lite-web:latest
+    command: >
+      sh -c "uv run uvicorn app.__main__:app --host 0.0.0.0 --port 8000 --workers 2 2>&1 | tee -a /app/log/api.log"
+    ports:
+      - "8002:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./log:/app/log
+      - ./app:/app/app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 5s
+      retries: 10
+      start_period: 5s
+      timeout: 2s
+    networks:
+      - template-backend
 
   celery-worker:
     build: .
-    container_name: celery-worker
+    container_name: template-celery-worker
     command: >
-      sh -c "uv run celery -A app.core.celery_app worker --loglevel=info 2>&1 | tee -a /app/log/celery.log"
+      sh -c "uv run celery -A app.worker.celery_app worker --loglevel=info 2>&1 | tee -a /app/log/celery.log"
     env_file:
       - .env
     volumes:
       - ./log:/app/log
       - ./app:/app/app
     restart: unless-stopped
-    depends_on:
-      - web
-    healthcheck:
-      test: ["CMD-SHELL", "uv run celery -A app.core.celery_app inspect ping -d celery@$$HOSTNAME"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+    networks:
+      - template-backend
 
   celery-beat:
     build: .
-    container_name: celery-beat
+    container_name: template-celery-beat
     command: >
-      sh -c "uv run celery -A app.core.celery_app beat
+      sh -c "uv run celery -A app.worker.celery_app beat
       --schedule=/app/celerybeat/celerybeat-schedule
       --loglevel=info 2>&1 | tee -a /app/log/beat.log"
     env_file:
@@ -53,7 +70,18 @@ services:
       - ./app:/app/app
       - ./celerybeat:/app/celerybeat
     restart: unless-stopped
-    depends_on:
-      - web
-      - celery-worker
+    networks:
+      - template-backend
 
+  flower:
+    image: mher/flower
+    container_name: template-flower
+    command: celery --broker="redis://redis:6379/0" flower --port=5555
+    ports:
+      - "5556:5555"
+    networks:
+      - template-backend
+
+networks:
+  template-backend:
+    external: true

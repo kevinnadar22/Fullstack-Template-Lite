@@ -36,7 +36,7 @@ class Admin(BaseModel):
 
 
 class Celery(BaseModel):
-    rabbitmq_url: Optional[str] = Field(default=None)
+    worker_url: Optional[str] = Field(default=None)
 
 
 class Settings(YamlBaseSettings):
