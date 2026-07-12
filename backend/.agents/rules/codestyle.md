@@ -40,6 +40,9 @@ from app.x import y
 
 use it like y.z, dont do like: from app.w.x.y import z
 
+this is wrong: from app.domain.schemas.response.product import ProductListResponse
+this is right: from app.domain import schemas, schemas.ProductListResponse
+
 log every detail with info, debug, warning, error using loguru like
 logger.bind(arg=v).info(message)
 you can use with logfire.span(..) for required part where we want to trace a particular external integration timing, success, failure
