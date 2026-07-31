@@ -53,3 +53,45 @@ write tests only for logically required functions, not for all functions where t
 run uv run init.py to automatically generate __init__.py file
 
 have small doc under every func
+
+
+## Strict imports (extra)
+
+Never import deeper than `app.<package>` (or a package-exported submodule). No `app.x.y.z` consumer imports.
+
+Allowed:
+
+```python
+from app.domain import models
+from app.domain import schemas
+from app.service import surcharge
+from app.service import CartService
+from app.repository import OrderRepository
+from app.utils import order_utils
+```
+
+Use as:
+
+```python
+models.SalesChannel
+schemas.ProductListResponseData
+surcharge.SurchargeService
+```
+
+Forbidden:
+
+```python
+from app.domain.models.enums import SalesChannel
+from app.domain.schemas.response.product import ProductListResponse
+from app.service.surcharge import SurchargeService
+from app.repository.order import OrderRepository
+from app.utils.order import OrderUtils
+```
+
+Wrong → right:
+
+- `from app.domain.models.enums import SalesChannel` → `from app.domain import models` then `models.SalesChannel`
+- `from app.service.surcharge import SurchargeService` → `from app.service import surcharge` then `surcharge.SurchargeService`
+- `from app.repository.order import OrderRepository` → `from app.repository import OrderRepository`
+
+Exception: files inside `app/domain/models/` may use relative imports (`from .enums import ...`).
