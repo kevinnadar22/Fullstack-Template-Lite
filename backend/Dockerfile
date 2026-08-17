@@ -1,29 +1,44 @@
-FROM python:3.13-slim
+# =========================
+# Builder
+# =========================
+FROM python:3.13-slim AS builder
 
-# Set working directory
 WORKDIR /app
 
-# Install system dependencies (only essential ones)
-RUN apt-get update && apt-get install -y curl \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install uv for faster package installation
+# Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-# Copy dependency files
+# Copy dependency files first for better layer caching
 COPY pyproject.toml uv.lock ./
 
-# Install Python dependencies
+# Create the virtual environment and install production dependencies
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy
+
 RUN uv sync --frozen --no-dev
 
-# Copy application code
+
+# =========================
+# Runtime
+# =========================
+FROM python:3.13-slim AS runtime
+
+WORKDIR /app
+
+# Runtime environment
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+# Copy only the installed environment
+COPY --from=builder /app/.venv /app/.venv
+
+# Copy application
 COPY . .
 
 # Create log directory
 RUN mkdir -p /app/log
 
-# Expose port for the web service
 EXPOSE 8000
 
-# Default command (will be overridden in docker-compose)
-CMD ["uv", "run", "uvicorn", "app.__main__:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.__main__:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
