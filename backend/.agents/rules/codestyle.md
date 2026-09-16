@@ -8,6 +8,32 @@ and repository for db calls,
 
 never call db from handler or utils, call only from service through repository
 
+layer order low → high: Repo → Utils → Service → Handlers
+
+normal deps flow upward (handlers → service → utils/repo)
+
+if a lower layer must use a higher one (e.g. utils needs a service), do NOT top-level import it — import inside the function:
+
+```python
+def some_util(...):
+    from app.service import payment
+
+    payment.payment_service.charge(...)
+```
+
+classes only for utils and services; expose a singleton instance (don't new them in handlers every call):
+
+```python
+class PaymentService:
+    ...
+
+payment_service = PaymentService()
+```
+
+when related files in the same layer grow past 4, club them into the same folder (e.g. utils/quiz/* for quiz-related utils)
+
+don't create the subfolder early — only group once that family crosses 4 files
+
 have environ variables under app/core/config.py
 
 raise exceptions from app/core/exceptions.py
