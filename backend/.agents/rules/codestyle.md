@@ -21,13 +21,41 @@ def some_util(...):
     payment.payment_service.charge(...)
 ```
 
-classes only for utils and services; expose a singleton instance (don't new them in handlers every call):
+utils, services, and repositories are classes — expose a module-level singleton instance (don't `new` them in handlers on every call):
 
 ```python
 class PaymentService:
     ...
 
 payment_service = PaymentService()
+```
+
+```python
+class OrderRepository:
+    ...
+
+order_repository = OrderRepository()
+```
+
+handlers / routers stay plain functions (or modules), NOT classes:
+
+```python
+# right
+@router.post("/orders")
+async def create_order(...):
+    order_service.create_order(...)
+
+# wrong — no handler classes
+class OrderHandler:
+    ...
+```
+
+forbidden in handlers:
+
+```python
+PaymentService()       # wrong — use payment_service
+OrderRepository()      # wrong — use order_repository
+order_utils.OrderUtils()  # wrong — use order_utils instance from the module
 ```
 
 when related files in the same layer grow past 4, club them into the same folder (e.g. utils/quiz/* for quiz-related utils)
